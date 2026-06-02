@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.List;
 import javax.sql.DataSource;
 
@@ -50,20 +51,48 @@ public class ImportPassageService {
             + " VALUES (?, ?, ?, ?, ?, ?)";
 
     long passageId = -1;
+    Connection connexion = null;
 
-    // TODO exercice 6 : réaliser l'import dans une transaction et renseigner `passageId`.
-    //
-    // 1. Ouvrir une connexion, puis connexion.setAutoCommit(false).
-    // 2. Dans un try :
-    //    - insérer le passage (prepareStatement(sqlPassage, Statement.RETURN_GENERATED_KEYS),
-    //      positionner les paramètres, executeUpdate) ;
-    //    - récupérer l'id généré : keys.next(); passageId = keys.getLong(1) ;
-    //    - pour chaque observation, l'insérer avec ce passageId ;
-    //    - connexion.commit().
-    // 3. catch (SQLException) : connexion.rollback() puis lever une DataAccessException.
-    // 4. finally : refermer la connexion.
-    //
-    // Astuce : ouvrez la connexion AVANT le try afin de pouvoir faire rollback dans le catch.
+    try {
+      connexion = source.getConnection();
+      connexion.setAutoCommit(false);
+
+      try (PreparedStatement psPassage =
+          connexion.prepareStatement(sqlPassage, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+        psPassage.setString(1, numeroCarre);
+        psPassage.setString(2, codePoint);
+        psPassage.setInt(3, numeroPassage);
+        psPassage.setInt(4, annee);
+        psPassage.executeUpdate();
+        try (ResultSet keys = psPassage.getGeneratedKeys()) {
+          if (keys.next()) {
+            passageId = keys.getLong(1);
+          } else {
+            throw new SQLException("aucun id");
+          }
+        }
+      }
+
+      for (ObservationAImporter obs : observations) {
+        try (PreparedStatement psObservation = connexion.prepareStatement(sqlObservation)) {
+          psObservation.setLong(1, passageId);
+          psObservation.setTime(2, new Time((long) obs.tempsDebut()));
+          psObservation.setTime(3, new Time((long) obs.tempsFin()));
+          psObservation.setDouble(4, obs.frequenceMediane());
+          psObservation.setString(5, obs.codeTaxon());
+          psObservation.setDouble(6, obs.probabilite());
+          psObservation.executeUpdate();
+        }
+      }
+
+      connexion.commit();
+
+    } catch (SQLException e) {
+      annulerSilencieusement(connexion);
+      throw new DataAccessException("erreur", e);
+    } finally {
+      fermerSilencieusement(connexion);
+    }
 
     return passageId;
   }
