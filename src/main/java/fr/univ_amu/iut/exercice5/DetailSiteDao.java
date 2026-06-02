@@ -84,7 +84,7 @@ public class DetailSiteDao {
       while (rs.next()) {
         especes.add(rs.getString("nom_vernaculaire"));
       }
-    } catch (Exception e) {
+    } catch (SQLException e) {
       throw new DataAccessException(sql, null);
     }
     return especes;
