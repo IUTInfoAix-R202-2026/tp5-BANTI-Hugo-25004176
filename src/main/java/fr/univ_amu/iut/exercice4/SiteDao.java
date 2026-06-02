@@ -80,7 +80,7 @@ public class SiteDao {
       ps.setString(4, site.commentaire());
       ps.setString(5, site.dateCreation());
       ps.executeUpdate();
-    } catch (Exception e) {
+    } catch (SQLException e) {
       throw new DataAccessException(sql, null);
     }
   }
@@ -99,7 +99,7 @@ public class SiteDao {
       ps.setString(4, site.dateCreation());
       ps.setString(5, site.numeroCarre());
       ps.executeUpdate();
-    } catch (Exception e) {
+    } catch (SQLException e) {
       throw new DataAccessException(sql, null);
     }
   }
@@ -112,7 +112,7 @@ public class SiteDao {
       PreparedStatement ps = connection.prepareStatement(sql);
       ps.setString(1, numeroCarre);
       ps.executeUpdate();
-    } catch (Exception e) {
+    } catch (SQLException e) {
       throw new DataAccessException(sql, null);
     }
   }
